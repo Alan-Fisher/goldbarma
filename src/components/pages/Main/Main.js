@@ -105,6 +105,7 @@ const Main = () => {
 
   return (
     <MainStyle>
+      Kaspi Gold bar ma?!
       <input type="file" onChange={({ target }) => getParsedNumber(target)} />
       {number && (
         <button
