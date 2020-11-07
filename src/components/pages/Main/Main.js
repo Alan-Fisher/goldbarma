@@ -1,27 +1,71 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 import {
   MainStyle,
 } from './MainStyle'
 import { request } from '../../../models/ApiModel/ApiModel'
-import { processfile, compressImage } from '../../../common/helpers'
+import { compressImage } from '../../../common/helpers'
+
+window.Clipboard = (function (window, document, navigator) {
+  let textArea
+  let copy
+
+  function isOS() {
+    return navigator.userAgent.match(/ipad|iphone/i)
+  }
+
+  function createTextArea(text) {
+    textArea = document.createElement('textArea')
+    textArea.value = text
+    document.body.appendChild(textArea)
+  }
+
+  function selectText() {
+    let range
+    let selection
+
+    if (isOS()) {
+      range = document.createRange()
+      range.selectNodeContents(textArea)
+      selection = window.getSelection()
+      selection.removeAllRanges()
+      selection.addRange(range)
+      textArea.setSelectionRange(0, 999999)
+    } else {
+      textArea.select()
+    }
+  }
+
+  function copyToClipboard() {
+    document.execCommand('copy')
+    document.body.removeChild(textArea)
+  }
+
+  copy = function (text) {
+    createTextArea(text)
+    selectText()
+    copyToClipboard()
+  }
+
+  return {
+    copy,
+  }
+}(window, document, navigator))
 
 const Main = () => {
-  const getParsedNumber = (target) => {
-    // navigator.clipboard.writeText('Text to be copied')
-    //   .then(() => {
-    //     console.log('Text copied to clipboard')
-    //   })
-    // const photo = target.files[0]
-    // const reader = new FileReader()
+  const [number, setNumber] = useState()
 
-    // reader.onloadend = () => {
-    //   compressImage(reader.result).then((base64) => {
-    //     requestTextDetection(base64)
-    //       .then(data => parsePhoneNumber(data[0].ParsedText))
-    //   })
-    // }
-    // reader.readAsDataURL(photo)
+  const getParsedNumber = (target) => {
+    const photo = target.files[0]
+    const reader = new FileReader()
+
+    reader.onloadend = () => {
+      compressImage(reader.result).then((base64) => {
+        requestTextDetection(base64)
+          .then(data => parsePhoneNumber(data[0].ParsedText))
+      })
+    }
+    reader.readAsDataURL(photo)
   }
 
   const requestTextDetection = (photo) => {
@@ -43,7 +87,6 @@ const Main = () => {
       const possibleNumber = parseInt(item.replace(/\D/g, ''), 10)
       if (Number.isInteger(possibleNumber)) { return possibleNumber }
     }).filter(number => number)
-    console.log(numbers)
     // if (numbers.length === 1) {
     copyAndGo(numbers[0])
     // }
@@ -57,15 +100,21 @@ const Main = () => {
     document.execCommand('copy')
     document.body.removeChild(el)
 
-    alert(number)
-
-    // window.location.replace('https://kaspi.kz/transfers/index')
+    setNumber(number)
   }
 
   return (
     <MainStyle>
       <input type="file" onChange={({ target }) => getParsedNumber(target)} />
-      Hey!
+      {number && (
+        <button
+          id="current-id"
+          className="current-id clearfix"
+          onClick={() => { window.Clipboard.copy(number); window.location.replace('https://kaspi.kz/transfers/index') }}
+        >
+          Copy and go
+        </button>
+      )}
     </MainStyle>
   )
 }
