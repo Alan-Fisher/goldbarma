@@ -1,3 +1,18 @@
+export const kzPhoneCodes = [
+  '702',
+  '705',
+]
+
+export const getPhoneNumberPart = (number) => {
+  // const number = '87026823477'
+  const { length } = number
+  const plusSevenSevenIdx = number.indexOf('+77')
+  const eightSevenIdx = number.indexOf('87')
+  const idx = plusSevenSevenIdx !== -1 ? plusSevenSevenIdx : eightSevenIdx // TODO else?
+
+  return number.slice(idx + 1)
+}
+
 export const compressImage = (base64) => {
   const canvas = document.createElement('canvas')
   const img = document.createElement('img')

@@ -2,9 +2,9 @@ import React, { useState, useRef } from 'react'
 
 import { MainStyle, FinalZoneStyle, HiddenFileInputsStyle } from './MainStyle'
 import { request } from '../../../models/ApiModel/ApiModel'
-import { compressImage } from '../../../common/helpers'
+import { compressImage, getPhoneNumberPart } from '../../../common/helpers'
 import {
-  Loading, Button, Text, Space,
+  Loading, Button, Text, Space, PhoneInput,
 } from '../../atoms'
 
 // TODO//
@@ -35,8 +35,9 @@ const Main = () => {
         requestTextDetection(base64)
           .then(data => {
             const { ParsedText } = data[0]
-            setParsedText(data[0].ParsedText)
-            parsePhoneNumbers(data[0].ParsedText)
+            console.log(ParsedText)
+            setParsedText(ParsedText)
+            parsePhoneNumbers(ParsedText)
           })
       })
     }
@@ -59,8 +60,8 @@ const Main = () => {
   }
 
   const parsePhoneNumbers = (text) => {
-    const possibleNumbers = text.match(/[0-9\s-]+$/gim) || []
-    const numbers = possibleNumbers
+    const possibleNumbers = text.match(/[0-9\s-]+$/gim) || [] // TODO (!) check others like .match(/[s\0-9]+$/gim)
+    const phoneNumbers = possibleNumbers
       .map(possibleNumber => {
         if (possibleNumber.length > 8) {
           return parseInt(possibleNumber.replace(/\D/g, ''), 10)
@@ -68,12 +69,12 @@ const Main = () => {
       })
       .filter(integer => integer)
 
-    if (numbers.length === 0) {
+    if (phoneNumbers.length === 0) {
       askingForRepeatOrGo()
-    } else if (numbers.length === 1) {
-      addCopyAndGoButton(numbers[0])
-    } else if (numbers.length > 1) {
-      askUserToChooseNumber(numbers)
+    } else if (phoneNumbers.length === 1) {
+      addCopyAndGoButton(phoneNumbers[0])
+    } else if (phoneNumbers.length > 1) {
+      askUserToChooseNumber(phoneNumbers)
     }
   }
 
@@ -108,36 +109,38 @@ const Main = () => {
   }
 
   const chooseNumber = (numberToChoose) => {
-    setNumbers()
     setNumber(numberToChoose)
   }
 
   return (
     <MainStyle>
-      <Text size="xxl">Kaspi Gold bar ma?</Text>
+      {/* eslint-disable-next-line jsx-a11y/accessible-emoji */}
+      <Text size="xxl">Kaspi Gold бар ма? 😀</Text>
+      <Space margin="15px">
+        {isUploading
+          ? <Loading />
+          : (
+            <>
+              <Button
+                outlined
+                color="black"
+                onClick={() => cameraInputRef.current.click()}
+              >
+                Сфоткать
+              </Button>
+              <Button
+                outlined
+                color="black"
+                onClick={() => galleryInputRef.current.click()}
+              >
+                Из галерии
+              </Button>
+            </>
+          )}
+      </Space>
 
-      {isUploading
-        ? <Loading />
-        : (
-          <Space>
-            <Button
-              outlined
-              color="black"
-              onClick={() => cameraInputRef.current.click()}
-            >
-              Сфоткать
-            </Button>
-            <Button
-              outlined
-              color="black"
-              onClick={() => galleryInputRef.current.click()}
-            >
-              Из галерии
-            </Button>
-          </Space>
-        )}
       <FinalZoneStyle>
-        {numbers?.map(numberToChoose => (
+        {!number && numbers?.map(numberToChoose => (
           <Button
             color="black"
             onClick={() => chooseNumber(numberToChoose)}
@@ -145,14 +148,28 @@ const Main = () => {
             {numberToChoose}
           </Button>
         ))}
-        {number && (
+        {/* <PhoneInput phoneNumber={number} /> */}
+        {number && <>
+          <PhoneInput phoneNumber={number} />
           <Button
+            outlined
+            color="black"
             id="current-id"
             onClick={() => { window.Clipboard.copy(number); openTranfersInApp() }}
           >
-            Открыть Каспи
+            Скопировать и открыть Каспи
           </Button>
-        )}
+          <Button
+            outlined
+            size="sm"
+            color="gray"
+            id="current-id"
+            onClick={() => { openTranfersInApp() }}
+          >
+            Просто открыть Каспи
+          </Button>
+          </>
+        }
         {parsedText && (
           <Button
             size="sm"
