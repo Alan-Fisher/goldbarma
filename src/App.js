@@ -1,7 +1,12 @@
 import React from 'react'
 import './App.css'
 import { Main } from './components/pages'
+import { AppStyle } from './AppStyle'
 
-const App = () => <Main />
+const App = () => (
+  <AppStyle>
+    <Main />
+  </AppStyle>
+)
 
 export default App

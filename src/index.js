@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import './index.css'
 import App from './App'
+import Theme from './common/Theme'
 
 const variables = ['REACT_APP_OCR_API_KEY']
 
@@ -22,6 +23,8 @@ function checkEnvVariables() {
 checkEnvVariables()
 
 ReactDOM.render(
-  <App />,
+  <Theme>
+    <App />
+  </Theme>,
   document.getElementById('root'),
 )
