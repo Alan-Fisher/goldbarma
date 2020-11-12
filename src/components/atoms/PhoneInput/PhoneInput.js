@@ -8,10 +8,8 @@ import { getPhoneNumberPart } from '../../../common/helpers'
 const PhoneInput = ({ phoneNumber }) => {
   let parsedPhoneNumber = getPhoneNumberPart(phoneNumber.toString())
   const length = (10 - parsedPhoneNumber.length)
-  console.log(length)
   for (let i = 0; i < length; i++) {
     parsedPhoneNumber += 'x'
-    console.log(parsedPhoneNumber)
   }
 
   return (

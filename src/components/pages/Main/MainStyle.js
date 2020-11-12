@@ -17,3 +17,12 @@ export const FinalZoneStyle = styled.div`
 export const HiddenFileInputsStyle = styled.div`
   display: none;
 `
+
+export const FooterStyle = styled.div`
+  position: fixed; 
+  top: 75vh; 
+  display: flex; 
+  flex-direction: column; 
+  justify-content: center; 
+  align-items: center;
+`
