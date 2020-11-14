@@ -3,29 +3,22 @@ import React, { useState, useRef } from 'react'
 import { MainStyle, FinalZoneStyle, HiddenFileInputsStyle, FooterStyle } from './MainStyle'
 import { request } from '../../../models/ApiModel/ApiModel'
 import {
-  Loading, Button, Text, Space, PhoneInput,
+  Loading, Button, Text, Space,
 } from '../../atoms'
 import loadImage from 'blueimp-load-image'
 import { getPhoneNumberPart } from '../../../common/helpers'
+import * as Sentry from '@sentry/browser'
 
 // TODO//
-// 1. Простая фукнция, которая позволит быстро тестить сканирование без лишнего
-// 2. Правка того что вертикальные фото с айфона ломают считывание
-// 3. Дизик :)
-// 4. ...
-// 5. Если не удалось считать — предлагаем перепопробовать или просто попасть в каспи
-// 6. Очищать форму после отправки
 // 7. Показывать номер в инпуте где каждая цифра — ячейка
-// 8. Вычленять только номера подходящие по длине и (?) формату
-// 9. Отрезать лишнее если вдруг попало, опираясь на 747, 707 и тп
 // 10. Сохранять-таки историю номеров?
 // 11. Редактирование номера
-// 12. Смягчить появление валидного по длине номера чтобы глаза не бросались его сравнивать раньше времени?
-// 13. Обрабатывать случаи когда два номера в одной строке (?)
 // 14. Поправить regex чтобы норм считывало и "regex не сработал.png"
+// 15. Попробовать вытащить адрес запроса, чтобы получать имя еще до перехода в приложение
+// 18. Кнопка "зарепортить" под "не распознан", шрифт у таймаутов поменьше
+// 19. Чекнуть сервис-воркер
 
 const Main = () => {
-  const [number, setNumber] = useState()
   const [numbers, setNumbers] = useState(
     //   [
     //   '7026823477',
@@ -40,9 +33,7 @@ const Main = () => {
   const galleryInputRef = useRef()
 
   const getParsedNumber = (target) => {
-    setNumbers() // TODO: move to clear()
-    setParsedText()
-    setWarning()
+    clearPrevResult()
 
     const photo = target.files[0]
 
@@ -59,12 +50,66 @@ const Main = () => {
       })
   }
 
+  const clearPrevResult = () => {
+    setNumbers()
+    setParsedText()
+    setWarning()
+  }
+
+  const renderWarning = () => {
+    switch (warning) {
+      case 'longRequest':
+        return <Text>Запрос длится дольше обычного</Text>
+      case 'tooLongRequest':
+        return <>
+          <Text>Сильно дольше обычного</Text>
+          <Button
+            size="sm"
+            color="default"
+            outlined
+            onClick={() => window.location.reload(false)}
+          >
+            Отменить
+          </Button>
+        </>
+      case 'phoneNumberNotRecognized':
+        return <>
+          <Text size="lg">Номер не опознан</Text>
+          <Button
+            size="sm"
+            color="gray"
+            outlined
+            onClick={() => reportBug()}
+          >
+            Зарепортить
+          </Button>
+        </>
+      case 'thanksForReport':
+        return <Text size="lg">Раха! ❤️</Text> // eslint-disable-line jsx-a11y/accessible-emoji
+      default:
+        return null
+    }
+  }
+
+  const reportBug = async () => {
+    let comment = prompt('Добавьте комментарий или отправьте как есть')
+
+    await Sentry.withScope(scope => {
+      scope.setExtra('parsedText', parsedText)
+      scope.setExtra('comment', comment)
+      Sentry.captureMessage('Bug Report')
+    })
+
+    setWarning('thanksForReport')
+    setTimeout(() => setWarning(), 1000)
+  }
+
   const requestTextDetection = (photo) => {
     const formData = new FormData()
-    formData.append('base64Image', photo) // TODO: check if it is okay to append base64
+    formData.append('base64Image', photo)
     setUploading(true)
-    let longRequestWarningTimer = setTimeout(() => setWarning('Запрос длится дольше обычного'), 3000)
-    let tooLongRequestWarningTimer = setTimeout(() => setWarning('Вероятно, сервер не ответит'), 7000)
+    let longRequestWarningTimer = setTimeout(() => setWarning('longRequest'), 3000)
+    let tooLongRequestWarningTimer = setTimeout(() => setWarning('tooLongRequest'), 8000)
 
     return request({
       method: 'POST',
@@ -95,53 +140,31 @@ const Main = () => {
       .filter(possibleNumber => [8, 9, 10].includes(possibleNumber?.length))
 
     if (phoneNumbers.length === 0) {
-      setWarning('Номер не опознан')
+      setWarning('phoneNumberNotRecognized')
     } else {
       askUserToChooseNumber(phoneNumbers)
     }
-    // } else if (phoneNumbers.length === 1) {
-    //   addCopyAndGoButton(phoneNumbers[0])
-    // } else if (phoneNumbers.length > 1) {
-    //   askUserToChooseNumber(phoneNumbers)
-    // }
   }
-
-  // const addCopyAndGoButton = (number) => {
-  //   const el = document.createElement('textarea')
-  //   el.value = number
-  //   document.body.appendChild(el)
-  //   el.select()
-  //   document.execCommand('copy')
-  //   document.body.removeChild(el)
-
-  //   setNumber(number)
-  // }
 
   const askUserToChooseNumber = (numbersToChoose) => {
     setNumbers(numbersToChoose)
   }
 
-  const openTranfersInApp = () => window.location.replace('https://kaspi.kz/transfers/index')
+  const openTranfersInApp = () => window.location.replace('https://kaspi.kz/transfers')
 
   const handleChange = (target) => {
     getParsedNumber(target)
     target.value = null // eslint-disable-line no-param-reassign
   }
 
-  // const chooseNumber = (numberToChoose) => {
-  //   setNumber(numberToChoose)
-  // }
-
   const formatPhoneNumber = (string) => {
-    const length = (10 - string.length)
-    for (let i = 0; i < length; i++) {
-      string += 'x'
-    }
+    const missingDigitsLength = (10 - string.length)
+    const completedNumber = string + 'x'.repeat(missingDigitsLength)
 
-    const code = string.slice(0, 3)
-    const firstPart = string.slice(3, 6)
-    const secondPart = string.slice(6, 8)
-    const thirdPart = string.slice(8, 10) || 'xx'
+    const code = completedNumber.slice(0, 3)
+    const firstPart = completedNumber.slice(3, 6)
+    const secondPart = completedNumber.slice(6, 8)
+    const thirdPart = completedNumber.slice(8, 10)
 
     return `+7 ${code} ${firstPart}-${secondPart}-${thirdPart}`
   }
@@ -153,28 +176,28 @@ const Main = () => {
       <Space margin="15px">
         {isUploading
           ? <Loading />
-          : (
-            <>
-              <Button
-                outlined
-                color="black"
-                onClick={() => cameraInputRef.current.click()}
-              >
-                Сфоткать
-              </Button>
-              <Button
-                outlined
-                color="black"
-                onClick={() => galleryInputRef.current.click()}
-              >
-                Из галерии
-              </Button>
-            </>
-          )}
+          : <>
+            <Button
+              outlined
+              color="black"
+              onClick={() => cameraInputRef.current.click()}
+            >
+              Сфоткать
+            </Button>
+            <Button
+              outlined
+              color="black"
+              onClick={() => galleryInputRef.current.click()}
+            >
+              Из галерии
+            </Button>
+          </>
+        }
       </Space>
 
       <FinalZoneStyle>
-        {!number && numbers?.map(numberToChoose => (
+        {numbers && <Text>Скопировать и открыть Каспи:</Text>}
+        {numbers?.map(numberToChoose => (
           <Button
             margin="5px 5px 15px"
             key={numberToChoose}
@@ -182,29 +205,13 @@ const Main = () => {
             outlined
             size="lg"
             onClick={() => { window.Clipboard.copy(numberToChoose); openTranfersInApp() }}
-          // onClick={() => chooseNumber(numberToChoose)}
           >
             <div style={{ fontSize: '20px', fontFamily: 'monospace, monospace' }}>
               {formatPhoneNumber(numberToChoose)}
             </div>
           </Button>
         ))}
-        {/* {number &&
-          <>
-            <PhoneInput phoneNumber={number} />
-            <Button
-              outlined
-              color="black"
-              id="current-id"
-              onClick={() => { window.Clipboard.copy(number); openTranfersInApp() }}
-            >
-              Скопировать и открыть Каспи
-            </Button>
-          </>
-        } */}
-        {warning && <>
-          <Text size="lg">{warning}</Text>
-        </>}
+        {warning && renderWarning()}
         <FooterStyle>
           <Button
             color="black"
@@ -236,7 +243,6 @@ const Main = () => {
         />
         <input
           ref={galleryInputRef}
-          // accept="image/*"
           type="file"
           onChange={({ target }) => handleChange(target)}
         />

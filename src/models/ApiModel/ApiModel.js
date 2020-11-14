@@ -1,7 +1,5 @@
 import axios from 'axios'
-// import * as Sentry from '@sentry/browser'
-// import i18next from 'i18next'
-// import { message } from 'antd'
+import * as Sentry from '@sentry/browser'
 
 const baseURL = ''
 
@@ -47,8 +45,7 @@ export const request = async ({
 
     if ([400, 401, 403, 404, 500].includes(response?.status)) {
       alert('An error occured!')
-      // message.error(i18next.t('ApiModel.errorOccurred'))
-      // Sentry.captureException(error)
+      Sentry.captureException(error)
     }
 
     throw error

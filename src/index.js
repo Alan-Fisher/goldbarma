@@ -4,6 +4,10 @@ import './index.css'
 import App from './App'
 import Theme from './common/Theme'
 
+import * as Sentry from '@sentry/browser'
+
+Sentry.init({ dsn: 'https://4866865d7ad5475eb3e0650399f8b742@o476570.ingest.sentry.io/5516503'})
+
 const variables = ['REACT_APP_OCR_API_KEY']
 
 function checkEnvVariables() {

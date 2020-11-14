@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@sentry/browser": "^5.27.4",
     "axios": "^0.21.0",
     "blueimp-load-image": "^5.14.0",
     "prop-types": "^15.7.2",
