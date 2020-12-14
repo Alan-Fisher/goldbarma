@@ -145,7 +145,7 @@ const Main = () => {
     setNumbers(numbersToChoose)
   }
 
-  const openTranfersInApp = () => window.location.replace('https://kaspi.kz/transfers')
+  const openTranfersInApp = () => window.open('https://kaspi.kz/transfers', '_blank')
 
   const handleChange = (target) => {
     getParsedNumber(target)
